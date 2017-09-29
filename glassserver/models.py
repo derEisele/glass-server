@@ -1,32 +1,37 @@
-import flask
-import flask_sqlalchemy
-import flask_restless
-import media
-import importer
+from glassserver import db
 
-app = flask.Flask(__name__)
-app.config.from_json("config.json")
-db = flask_sqlalchemy.SQLAlchemy(app)
 
+EpisodesFiles = db.Table("episodes_files",
+                         db.Column('id', db.Integer, primary_key=True),
+                         db.Column("episode_id", db.Integer, db.ForeignKey("episodes.id")),
+                         db.Column("file_id", db.Integer, db.ForeignKey("mediafiles.id")))
+db.session.commit()
 
 class Show(db.Model):
 
     __tablename__ = "shows"
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(50))
+    #imdb_id = db.Column(db.String(9)) TODO
+    title = db.Column(db.String(100))
+    year = db.Column(db.Integer)
     lang = db.Column(db.String(3))
-    descr = db.Column(db.String(200))
+    descr = db.Column(db.String(500))
     image = db.Column(db.String(200))
+    __table_args__ = (db.UniqueConstraint("title", "lang", "year", name="uix_1"),)
 
-    def __init__(self, title, lang, descr, image):
+
+
+    def __init__(self, title, year, lang, descr, image):
         self.title = title
         self.lang = lang
         self.descr = descr
         self.image = image
+        self.year = year
+        #self.imdb_id = imdb_id
 
 
 class ShowDetailed(Show):
-    episode = db.relationship('Episode',
+    episodes = db.relationship('Episode',
                               backref=db.backref('show'))
 
 
@@ -35,11 +40,13 @@ class Episode(db.Model):
     __tablename__ = "episodes"
     id = db.Column(db.Integer, primary_key=True)
     show_id = db.Column(db.Integer, db.ForeignKey("shows.id"))
+    files = db.relationship("MediaFile", secondary=EpisodesFiles, backref="episode")
     season = db.Column(db.Integer)
     episode = db.Column(db.Integer)
     title = db.Column(db.String(100))
-    descr = db.Column(db.String(200))
+    descr = db.Column(db.String(500))
     image = db.Column(db.String(200))
+    __table_args__ = (db.UniqueConstraint("show_id", "season", "episode", name="uix_1"),)
 
     def __init__(self, show_id, season, episode, title, descr, image):
         self.show_id = show_id
@@ -56,21 +63,24 @@ class Movie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     lang = db.Column(db.String(3))
     title = db.Column(db.String(100))
-    descr = db.Column(db.String(200))
+    descr = db.Column(db.String(500))
     image = db.Column(db.String(200))
+    year = db.Column(db.Integer)
+    __table_args__ = (db.UniqueConstraint("title", "lang", "year", name="uix_1"),)
 
-    def __init__(self, title, lang, descr, image):
+    def __init__(self, title, year, lang, descr, image):
         self.title = title
         self.lang = lang
         self.descr = descr
         self.image = image
+        self.year = year
 
 
 class MediaPrefix(db.Model):
 
     __tablename__ = "mediaprefix"
     id = db.Column(db.Integer, primary_key=True)
-    path = db.Column(db.String(200))
+    path = db.Column(db.String(200), unique=True)
     name = db.Column(db.String(100))
     type = db.Column(db.Integer)
 
@@ -84,6 +94,8 @@ class MediaFile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     prefix_id = db.Column(db.Integer, db.ForeignKey("mediaprefix.id"))
     path = db.Column(db.String(200))
+    episodes = db.relationship("Episode", secondary=EpisodesFiles, backref="mediafile")
+    __table_args__ = (db.UniqueConstraint("prefix_id", "path", name="uix_1"),)
 
     def __init__(self, prefix_id, path):
         self.prefix_id = prefix_id
@@ -92,22 +104,3 @@ class MediaFile(db.Model):
 
 db.create_all()
 db.session.commit()
-manager = flask_restless.APIManager(app, flask_sqlalchemy_db=db)
-manager.create_api(Show)
-manager.create_api(ShowDetailed, collection_name="showsdetailed")
-manager.create_api(Episode, exclude_columns=["show_id"])
-manager.create_api(Movie)
-media.addRoutes(app)
-imp = importer
-#imp.setmyDB(db)
-imp.auto()
-
-if __name__ == "__main__":
-    sh = Show("testShow", "en", "test show", "linktoimg")
-    sh_id = Show.query.get(id)
-    print(id)
-    ep = Episode("3", "2", "3", "Episode", "test episode", "linktoimg")
-    #db.session.add(sh)
-    #db.session.add(ep)
-    db.session.commit()
-    app.run(host="0.0.0.0", port=1234, threaded=True)
