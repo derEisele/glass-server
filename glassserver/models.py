@@ -93,8 +93,8 @@ class MediaFile(db.Model):
     __tablename__ = "mediafiles"
     id = db.Column(db.Integer, primary_key=True)
     prefix_id = db.Column(db.Integer, db.ForeignKey("mediaprefix.id"))
+    prefix = db.relationship(MediaPrefix, foreign_keys=[prefix_id])
     path = db.Column(db.String(200))
-    episodes = db.relationship("Episode", secondary=EpisodesFiles, backref="mediafile")
     __table_args__ = (db.UniqueConstraint("prefix_id", "path", name="uix_1"),)
 
     def __init__(self, prefix_id, path):

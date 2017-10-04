@@ -10,7 +10,8 @@ db = flask_sqlalchemy.SQLAlchemy(app)
 
 from . import models
 from . import endpoints
-from . import infocollecter
+#from . import infocollecter
+from . import media
 
 db.create_all()
 db.session.commit()
@@ -18,6 +19,7 @@ db.session.commit()
 api.add_resource(endpoints.Shows, "/shows")
 api.add_resource(endpoints.Show, "/show")
 api.add_resource(endpoints.ShowDetailed, "/show/<int:show_id>")
+api.add_resource(endpoints.EpisodeDetailed, "/episode/<int:episode_id>")
 
 def __del__():
     print("DEL")

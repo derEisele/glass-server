@@ -1,5 +1,6 @@
 from glassserver import db
 from glassserver import models
+from glassserver import media
 from flask import request
 from flask_restful import Resource
 from flask_restful import fields, marshal_with
@@ -9,7 +10,16 @@ episode_fields = {
     "season":   fields.Integer,
     "episode":  fields.Integer,
     "title":    fields.String,
+    "descr":    fields.String,
+}
+
+episode_detailed_fields = {
+    "id":       fields.Integer,
+    "season":   fields.Integer,
+    "episode":  fields.Integer,
+    "title":    fields.String,
     "descr":    fields.String
+
 }
 
 show_fields = {
@@ -69,3 +79,16 @@ class Shows(Resource):
     def get(self):
         allShows = models.Show.query.all()
         return {"shows": allShows}
+
+class EpisodeDetailed(Resource):
+    def get(self, episode_id):
+        dbEpisode = models.Episode.query.filter_by(id=episode_id).first()
+        dbShow = models.Show.query.filter_by(id=dbEpisode.show_id).first()
+        #models.MediaFile.id
+        file_id = dbEpisode.files[0].id
+        ep = {"show":    dbShow.title,
+              "title":   dbEpisode.title,
+              "season":  dbEpisode.season,
+              "episode": dbEpisode.episode,
+              "urls":    media.generateUrls(file_id)}
+        return ep
