@@ -9,6 +9,7 @@ import codecs
 import logging
 from subprocess import Popen, PIPE, DEVNULL
 import shlex
+from pprint import pprint
 
 utf8reader = codecs.getreader('utf-8')
 
@@ -31,24 +32,35 @@ def ffprobe_data(ospath):
     return data
 
 
-def stream(ospath, ss, t, bandwidth="0"):
-    logging.info('start ffmpeg stream h264 480p on path=%s ss=%s t=%s', ospath, ss, t)
+def stream(ospath, ss, t, bitrate=None):
+    resolution = resolutionMap(bitrate)
+
+    logging.info('start ffmpeg stream h264 %sp on path=%s ss=%s t=%s', resolution, ospath, ss, t)
     t_2 = t + 2.0
     output_ts_offset = ss
     if ss != 0.0:
         ss_string = "-ss {:0.6f}".format(ss)
     else:
         ss_string = ""
-
+    """
     cutter = LoggedPopen(
         shlex.split("ffmpeg -v fatal {ss_string} -i ".format(**locals())) +
         [ospath] +
-        shlex.split("-c:a aac -strict experimental -ac 2 -b:a 64k"
+        shlex.split("-c:a aac -strict experimental -ac 2 -b:a 128k"
                     " -c:v libx264 -pix_fmt yuv420p -profile:v high -level 4.0 -preset ultrafast -trellis 0"
                     " -crf 31 -vf scale=w=trunc(oh*a/2)*2:h=480"
                     " -shortest -f mpegts"
                     " -output_ts_offset {output_ts_offset:.6f} -t {t:.6f} pipe:%d.ts".format(**locals())),
-        stdout=PIPE)
+        stdout=PIPE)"""
+
+    command = shlex.split("ffmpeg -v fatal {} -i {}".format(ss_string, ospath) +
+                          " -c:a aac -strict experimental -ac 2 -b:a 128k" +
+                          " -c:v libx264 -preset ultrafast" +
+                          " -vf scale={}:{} -b:v {}k".format(resolution[0], resolution[1], bitrate) +
+                          " -shortest -f mpegts -output_ts_offset {} -t {}".format(output_ts_offset, t) +
+                          " pipe:1")
+    pprint(command)
+    cutter = LoggedPopen(command, stdout=PIPE)
     return cutter
 
 
@@ -113,7 +125,7 @@ def calculate_splittimes(ospath, chunk_duration):
     """
 
     def calculate_points(media_duration):
-        pos = min(60, media_duration)
+        pos = min(15, media_duration)
         while pos < media_duration:
             yield pos
             pos += chunk_duration
@@ -160,3 +172,20 @@ def thumbnail_video(ospath, width, height):
 
     encoder = LoggedPopen(command, stdout=PIPE)
     return encoder
+
+
+def resolutionMap(bitrate):
+        if bitrate <= 570:
+            return (256, 144)
+        if 570 < bitrate <= 700:
+            return (424, 240)
+        if 700 < bitrate <= 1100:
+            return (640, 360)
+        if 1100 < bitrate <= 1600:
+            return (848, 480)
+        if 1600 < bitrate <= 2100:
+            return (1024, 576)
+        if 2100 < bitrate <= 3100:
+            return (1280, 720)
+        if 3100 < bitrate:
+            return (1920, 1080)

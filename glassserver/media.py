@@ -3,10 +3,12 @@ from flask import Response
 from glassserver import app
 from glassserver import ffmpeg
 from glassserver import models
+from glassserver import infocollecter
 
 CHUNK_DURATION = 30
-BASE_URL = "http://127.0.0.1:1234/"
-BANDWIDTHS = ["96000", "21400", "464000"]
+BASE_URL = "http://192.168.100.74:1234/"
+BANDWIDTHS = [400, 550, 700, 1000, 1300, 1600, 1900, 2200, 2800, 3400, 4000, 4600, 7000, 10000, 20000]
+AR = 16/9
 
 
 @app.route("/hls/<int:file_id>/master.m3u8")
@@ -14,7 +16,8 @@ def hls_master(file_id):
     buf = "#EXTM3U\n"
     buf += "#EXT-X-VERSION:3\n"
     for b in BANDWIDTHS:
-        buf += "#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH={}\n".format(b)
+        r = ffmpeg.resolutionMap(b)
+        buf += "#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH={},RESOLUTION={}x{}\n".format(b, r[0], r[1])
         buf += BASE_URL + "hls/{}/master_{}.m3u8\n".format(file_id, b)
 
     resp = Response(buf, mimetype='application/x-mpegurl')
@@ -89,6 +92,10 @@ def frag(ss, t, bandwidth, file_id):
 
     process = ffmpeg.stream(ospath, new_ss, new_t, bandwidth)
     resp =  Response(process.stdout, mimetype='video/MP2T')
+
+    #  VERY, VERY IMPORTANT TO AVOID MEMORY OVERFLOW!!!!!!!
+    process.kill
+    del process
     resp.headers.extend({"Access-Control-Allow-Origin": "*",
                          "Access-Control-Expose-Headers": "Content-Length"})
     return resp
@@ -127,8 +134,8 @@ def hls(file_id):
     return resp
 
 
-@app.route('/frag/<int:file_id>/<float:ss>_<float:t>.ts')
-def frag(ss, t, file_id):
+@app.route('/fragment/<int:file_id>/<float:ss>_<float:t>.ts')
+def frag_old(ss, t, file_id):
     #path = os.path.normpath(path)
     #ospath = os.path.join(root_directory, path)
 
@@ -159,23 +166,29 @@ def frag(ss, t, file_id):
         # new_t -= new_t_prev_duration
 
     process = ffmpeg.stream(ospath, new_ss, new_t)
-    resp =  Response(process.stdout, mimetype='video/MP2T')
+    resp = Response(process.stdout, mimetype='video/MP2T')
     resp.headers.extend({"Access-Control-Allow-Origin": "*",
                          "Access-Control-Expose-Headers": "Content-Length"})
     return resp
+
+
+@app.route("/importAll")
+def importAll():
+    infocollecter.importAll()
+    return {"Info": "Started import"}
 
 
 def ffprobe(path):
     try:
         data = ffmpeg.ffprobe_data(path)
         if 'format' not in data or \
-            'duration' not in data['format']:
+           'duration' not in data['format']:
             logging.warning('analysis failed for %s: Incomplete data', path)
             return None
         else:
             return data
     except:
-        logging.warning('ffprobe failed for %s', path)
+        print('ffprobe failed for %s', path)
     return None
 
 

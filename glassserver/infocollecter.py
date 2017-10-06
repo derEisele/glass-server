@@ -113,6 +113,12 @@ def searchTVShow(name):
     results = t.search(name)
     return results
 
+def importAll():
+    prefixes = models.MediaPrefix.query.all()
+    for prefix in prefixes:
+        start_new_thread(indexPrefix, (prefix.id, prefix.path))
+        #indexPrefix(prefix.id, prefix.path)
+
 
 if __name__ == "__main__":
     print("Testing mode")
@@ -125,8 +131,3 @@ if __name__ == "__main__":
     """
     indexPrefix("/media/hdd1/TV/shows")
     #pprint(list(f))
-else:
-    prefixes = models.MediaPrefix.query.all()
-    for prefix in prefixes:
-        #start_new_thread(indexPrefix, (prefix.id, prefix.path))
-        indexPrefix(prefix.id, prefix.path)
