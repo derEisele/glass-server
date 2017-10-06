@@ -1,5 +1,6 @@
 import os
 from flask import Response
+from flask import jsonify
 from glassserver import app
 from glassserver import ffmpeg
 from glassserver import models
@@ -18,7 +19,7 @@ def hls_master(file_id):
     for b in BANDWIDTHS:
         r = ffmpeg.resolutionMap(b)
         buf += "#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH={},RESOLUTION={}x{}\n".format(b, r[0], r[1])
-        buf += BASE_URL + "hls/{}/master_{}.m3u8\n".format(file_id, b)
+        buf += BASE_URL + "hls/{}/index_{}.m3u8\n".format(file_id, b)
 
     resp = Response(buf, mimetype='application/x-mpegurl')
     resp.headers.extend({"Access-Control-Allow-Origin": "*",
@@ -26,7 +27,7 @@ def hls_master(file_id):
     return resp
 
 
-@app.route("/hls/<int:file_id>/master_<int:bandwidth>.m3u8")
+@app.route("/hls/<int:file_id>/index_<int:bandwidth>.m3u8")
 def hls_bandwidth(file_id, bandwidth):
 
     dbFile = models.MediaFile.query.filter_by(id=file_id).first()
@@ -175,7 +176,7 @@ def frag_old(ss, t, file_id):
 @app.route("/importAll")
 def importAll():
     infocollecter.importAll()
-    return {"Info": "Started import"}
+    return jsonify({"Info": "Started import"})
 
 
 def ffprobe(path):
@@ -193,6 +194,6 @@ def ffprobe(path):
 
 
 def generateUrls(id):
-    urls = {"hls": BASE_URL + "hls/" + str(id) + ".m3u8",
-            "mp4": BASE_URL + "mp4/" + str(id) + ".mp4"}
+    urls = {"hls": BASE_URL + "hls/" + str(id) + "/master.m3u8"}
+            #"mp4": BASE_URL + "mp4/" + str(id) + ".mp4"}
     return urls
