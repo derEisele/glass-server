@@ -1,5 +1,7 @@
 from glassserver import db
 
+db.create_all()
+db.session.commit()
 
 EpisodesFiles = db.Table("episodes_files",
                          db.Column('id', db.Integer, primary_key=True),
@@ -16,42 +18,58 @@ class Show(db.Model):
     year = db.Column(db.Integer)
     lang = db.Column(db.String(3))
     descr = db.Column(db.String(500))
-    image = db.Column(db.String(200))
+    poster = db.Column(db.String(500))
+    banner = db.Column(db.String(200))
     __table_args__ = (db.UniqueConstraint("title", "lang", "year", name="uix_1"),)
 
 
 
-    def __init__(self, title, year, lang, descr, image):
+    def __init__(self, title, year, lang, descr, banner, poster):
+        print("create show object", title)
         self.title = title
         self.lang = lang
         self.descr = descr
-        self.image = image
+        self.banner = banner
         self.year = year
-        #self.imdb_id = imdb_id
+        self.poster = poster
+        # self.imdb_id = imdb_id
 
 
 class ShowDetailed(Show):
-    episodes = db.relationship('Episode',
-                              backref=db.backref('show'))
+    seasons = db.relationship("Season")
+
+
+class Season(db.Model):
+    __tablename__ = "seasons"
+    id = db.Column(db.Integer, primary_key=True)
+    show_id = db.Column(db.Integer, db.ForeignKey("shows.id"))
+    show = db.relationship("ShowDetailed", back_populates="seasons")
+    season_number = db.Column(db.Integer)
+    poster = db.Column(db.String(500))
+    episodes = db.relationship('Episode')
+
+    def __init__(self, show_id, season_number, poster=""):
+        self.show_id = show_id
+        self.season_number = season_number
+        self.poster = poster
 
 
 class Episode(db.Model):
 
     __tablename__ = "episodes"
     id = db.Column(db.Integer, primary_key=True)
-    show_id = db.Column(db.Integer, db.ForeignKey("shows.id"))
-    files = db.relationship("MediaFile", secondary=EpisodesFiles, backref="episode")
-    season = db.Column(db.Integer)
-    episode = db.Column(db.Integer)
+    season_id = db.Column(db.Integer, db.ForeignKey("seasons.id"))
+    season = db.relationship("Season", back_populates="episodes")
+    files = db.relationship("MediaFile", secondary=EpisodesFiles, backref="Episode")
+    episode_number = db.Column(db.Integer)
     title = db.Column(db.String(100))
     descr = db.Column(db.String(500))
     image = db.Column(db.String(200))
-    __table_args__ = (db.UniqueConstraint("show_id", "season", "episode", name="uix_1"),)
+    __table_args__ = (db.UniqueConstraint("season_id", "episode_number", name="uix_1"),)
 
-    def __init__(self, show_id, season, episode, title, descr, image):
-        self.show_id = show_id
-        self.season = season
-        self.episode = episode
+    def __init__(self, season_id, episode_number, title, descr, image):
+        self.season_id = season_id
+        self.episode_number = episode_number
         self.title = title
         self.descr = descr
         self.image = image
@@ -95,6 +113,7 @@ class MediaFile(db.Model):
     prefix_id = db.Column(db.Integer, db.ForeignKey("mediaprefix.id"))
     prefix = db.relationship(MediaPrefix, foreign_keys=[prefix_id])
     path = db.Column(db.String(200))
+    episodes = db.relationship("Episode", secondary=EpisodesFiles, backref="MediaFile")
     __table_args__ = (db.UniqueConstraint("prefix_id", "path", name="uix_1"),)
 
     def __init__(self, prefix_id, path):
@@ -103,4 +122,3 @@ class MediaFile(db.Model):
 
 
 db.create_all()
-db.session.commit()

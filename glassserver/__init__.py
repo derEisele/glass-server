@@ -5,21 +5,22 @@ import flask_restful
 
 app = flask.Flask(__name__)
 app.config.from_json("../config.json")
+#app.config["APPLICATION_ROOT"] = "/glass/"
 api = flask_restful.Api(app)
 db = flask_sqlalchemy.SQLAlchemy(app)
 
-from . import models
-from . import endpoints
+from glassserver import models
+from glassserver import endpoints
 #from . import infocollecter
-from . import media
+from glassserver import media
+from glassserver import setupdb
 
 db.create_all()
-db.session.commit()
 
-api.add_resource(endpoints.Shows, "/shows")
-api.add_resource(endpoints.Show, "/show")
-api.add_resource(endpoints.ShowDetailed, "/show/<int:show_id>")
-api.add_resource(endpoints.EpisodeDetailed, "/episode/<int:episode_id>")
+api.add_resource(endpoints.Shows, "/api/shows")
+api.add_resource(endpoints.Show, "/api/show")
+api.add_resource(endpoints.ShowDetailed, "/api/show/<int:show_id>", "/api/shows/<int:show_id>")
+api.add_resource(endpoints.EpisodeDetailed, "/api/episode/<int:episode_id>", "/api/episodes/<int:episode_id>")
 
 def __del__():
     print("DEL")

@@ -59,8 +59,18 @@ def stream(ospath, ss, t, bitrate=None):
                           " -vf scale={}:{} -b:v {}k".format(resolution[0], resolution[1], bitrate) +
                           " -shortest -f mpegts -output_ts_offset {} -t {}".format(output_ts_offset, t) +
                           " pipe:1")
-    pprint(command)
-    cutter = LoggedPopen(command, stdout=PIPE)
+
+    command_vaapi = shlex.split("ffmpeg {} ".format(ss_string) +
+                                " -vaapi_device /dev/dri/renderD128" +
+                                " -i {} -vf 'format=nv12,hwupload,".format(ospath) +
+                                "scale_vaapi=w={}:h={}'".format(resolution[0], resolution[1]) +
+                                " -c:a aac -strict experimental -ac 2 -b:a 128k" +
+                                " -c:v h264_vaapi" +
+                                " -f mpegts" +
+                                " -output_ts_offset {} -t {}".format(output_ts_offset, t) +
+                                " pipe:1")
+    pprint(command_vaapi)
+    cutter = LoggedPopen(command_vaapi, stdout=PIPE)
     return cutter
 
 
@@ -177,15 +187,15 @@ def thumbnail_video(ospath, width, height):
 def resolutionMap(bitrate):
         if bitrate <= 570:
             return (256, 144)
-        if 570 < bitrate <= 700:
+        if 570 < bitrate <= 1200:
             return (424, 240)
-        if 700 < bitrate <= 1100:
+        if 1200 < bitrate <= 1800:
             return (640, 360)
-        if 1100 < bitrate <= 1600:
+        if 1800 < bitrate <= 2600:
             return (848, 480)
-        if 1600 < bitrate <= 2100:
+        if 2600 < bitrate <= 3500:
             return (1024, 576)
-        if 2100 < bitrate <= 3100:
+        if 3500 < bitrate <= 6000:
             return (1280, 720)
-        if 3100 < bitrate:
+        if 6000 < bitrate:
             return (1920, 1080)
