@@ -38,6 +38,9 @@ def indexPrefix(prefix_id, prefix):
             if not files:  # If no files in folder
                 print("No files in folder!")
                 continue
+            if not show:
+                print("Show is none?!")
+                continue
 
             for f in files:
                 myEpisode = getEpisode(show, f)

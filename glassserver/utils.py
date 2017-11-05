@@ -36,7 +36,7 @@ def get_or_create(model, **kwargs):
                 return instance
             except IntegrityError as e:
                 db.session.rollback()
-                instance = query.one()
+                instance = query.first()
 
                 return instance
     except Exception as e:
