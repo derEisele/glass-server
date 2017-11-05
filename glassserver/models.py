@@ -1,4 +1,5 @@
 from glassserver import db
+from datetime import timedelta, datetime
 
 db.create_all()
 db.session.commit()
@@ -119,6 +120,37 @@ class MediaFile(db.Model):
     def __init__(self, prefix_id, path):
         self.prefix_id = prefix_id
         self.path = path
+
+
+class User(db.Model):
+
+    __tablename__ = "users"
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(200), unique=True)
+    name = db.Column(db.String(100))
+    type = db.Column(db.Integer)
+
+    def __init__(self, email, name, type=0):
+        self.email = email
+        self.name = name
+        self.type = type
+
+
+class ViewState(db.Model):
+    __tablename__ = "viewstates"
+    id = db.Column(db.Integer, primary_key=True)
+    mediafile_id = db.Column(db.Integer, db.ForeignKey("mediafiles.id"))
+    mediafile = db.relationship("MediaFile", back_populates="viewstates")
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    user = db.relationship("User")
+    completed = db.Column(db.Boolean)
+    time = db.Column(db.Interval)
+
+    def __init__(self, user_id, mediafile_id, completed=False, time=timedelta(seconds=0)):
+        self.user_id = user_id
+        self.mediafile_id = mediafile_id
+        self.completed = completed
+        self.time = time
 
 
 db.create_all()

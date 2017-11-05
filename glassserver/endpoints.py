@@ -60,7 +60,7 @@ show_list_fields = {
 class Show(Resource):
     @marshal_with(show_fields)
     def get(self):
-        shows = models.Show.query.all()
+        shows = models.Show.query.all().order_by(shows.title)
         return shows[0]
 
     @marshal_with(show_fields)
@@ -76,6 +76,7 @@ class Show(Resource):
         db.session.commit()
         return show
 
+
 class ShowDetailed(Resource):
     @marshal_with(show_detailed_fields)
     def get(self, show_id):
@@ -86,8 +87,9 @@ class ShowDetailed(Resource):
 class Shows(Resource):
     @marshal_with(show_list_fields)
     def get(self):
-        allShows = models.Show.query.all()
+        allShows = models.Show.query.order_by(models.Show.title).all()
         return {"shows": allShows}
+
 
 class EpisodeDetailed(Resource):
     def get(self, episode_id):
