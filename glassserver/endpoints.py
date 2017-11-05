@@ -4,6 +4,7 @@ from glassserver import media
 from flask import request
 from flask_restful import Resource
 from flask_restful import fields, marshal_with
+from datetime import timedelta
 
 episode_fields = {
     "id":       fields.Integer,
@@ -93,6 +94,8 @@ class Shows(Resource):
 
 class EpisodeDetailed(Resource):
     def get(self, episode_id):
+        showViewState = request.args.get("viewstate", 0)
+        userID = request.args.get("userid", 0)
         dbEpisode = models.Episode.query.filter_by(id=episode_id).first()
         dbShow = models.Show.query.filter_by(id=dbEpisode.season.show_id).first()
         #models.MediaFile.id
@@ -103,4 +106,16 @@ class EpisodeDetailed(Resource):
               "season":  dbEpisode.season.season_number,
               "episode": dbEpisode.episode_number,
               "urls":    media.generateUrls(file_id)}
+        if showViewState:
+            viewState = models.ViewState.query.filter_by(mediafile_id=file_id, user_id=userID).first()
+            if viewState:
+                ep["viewstate"] = {
+                    "completed": viewState.completed,
+                    "time": str(viewState.time)
+                }
+            else:
+                ep["viewstate"] = {
+                    "completed": False,
+                    "time": str(timedelta(seconds=0))
+                }
         return ep
