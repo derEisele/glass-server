@@ -2,3 +2,6 @@
 /__pycache__
 /media.db
 /glassserver/__pycache__
+/glassserver/*.pyc
+/*.pyc
+/glassserver/media.db
