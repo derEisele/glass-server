@@ -2,6 +2,7 @@ import os
 from flask import Response
 from flask import jsonify
 from flask import request
+from flask import render_template
 from glassserver import app
 from glassserver import ffmpeg
 from glassserver import models
@@ -74,6 +75,18 @@ def hls_bandwidth(file_id, bandwidth):
     resp.headers.extend({"Access-Control-Allow-Origin": "*",
                          "Access-Control-Expose-Headers": "Content-Length"})
     return resp
+
+
+@app.route('/api/dash/<int:file_id>/manifest.mpd')
+def dash_manifest(file_id):
+    representations = [{"id": 1, "bandwidth": 800, "height": 720, "width": 1280},
+                       {"id": 2, "bandwidth": 2000, "height": 1080, "width": 1920}]
+
+    resp = render_template("manifest.mpd",
+                           duration="42S",
+                           representations=representations)
+
+    return Response(resp, mimetype="application/octet-stream")
 
 
 @app.route('/api/frag/<int:file_id>/<int:bandwidth>_<float:ss>_<float:t>.ts')
