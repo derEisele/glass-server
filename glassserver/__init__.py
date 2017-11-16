@@ -18,7 +18,6 @@ from glassserver import setupdb
 db.create_all()
 
 api.add_resource(endpoints.Shows, "/api/shows")
-api.add_resource(endpoints.Show, "/api/show")
 api.add_resource(endpoints.ShowDetailed, "/api/show/<int:show_id>", "/api/shows/<int:show_id>")
 api.add_resource(endpoints.EpisodeDetailed, "/api/episode/<int:episode_id>", "/api/episodes/<int:episode_id>")
 

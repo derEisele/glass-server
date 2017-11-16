@@ -58,26 +58,6 @@ show_list_fields = {
 }
 
 
-class Show(Resource):
-    @marshal_with(show_fields)
-    def get(self):
-        shows = models.Show.query.all().order_by(shows.title)
-        return shows[0]
-
-    @marshal_with(show_fields)
-    def post(self):
-        json_data = request.get_json()
-        self.title = json_data["title"]
-        self.year = json_data["year"]
-        self.lang = json_data["lang"]
-        self.descr = json_data["descr"]
-        self.banner = json_data["banner"]
-        show = models.Show(self.title, self.year, self.lang, self.descr, self.banner)
-        db.session.add(show)
-        db.session.commit()
-        return show
-
-
 class ShowDetailed(Resource):
     @marshal_with(show_detailed_fields)
     def get(self, show_id):
