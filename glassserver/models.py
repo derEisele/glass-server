@@ -8,6 +8,17 @@ EpisodesFiles = db.Table("episodes_files",
                          db.Column('id', db.Integer, primary_key=True),
                          db.Column("episode_id", db.Integer, db.ForeignKey("episodes.id")),
                          db.Column("file_id", db.Integer, db.ForeignKey("mediafiles.id")))
+
+SongsArtists = db.Table("songs_artists",
+                         db.Column('id', db.Integer, primary_key=True),
+                         db.Column("artist_id", db.Integer, db.ForeignKey("artists.id")),
+                         db.Column("song_id", db.Integer, db.ForeignKey("songs.id")))
+
+AlbumsArtists = db.Table("albums_artists",
+                         db.Column('id', db.Integer, primary_key=True),
+                         db.Column("artist_id", db.Integer, db.ForeignKey("artists.id")),
+                         db.Column("album_id", db.Integer, db.ForeignKey("albums.id")))
+
 db.session.commit()
 
 class Show(db.Model):
@@ -121,6 +132,75 @@ class MediaFile(db.Model):
     def __init__(self, prefix_id, path):
         self.prefix_id = prefix_id
         self.path = path
+
+
+class Album_Song(db.Model):
+
+    __tablename__ = "albums_songs"
+    id = db.Column(db.Integer, primary_key=True, unique=True)
+    album_id = db.Column(db.Integer, db.ForeignKey("albums.id", primary_key=True))
+    song_id = db.Column(db.Integer, db.ForeignKey("songs.id", primary_key=True))
+    position = db.Column(db.Integer)
+    disc = db.Column(db.Integer)
+
+    album = db.relationship("Album", backref=db.backref("albums_songs", cascade="all, delete-orphan" ))
+    song = db.relationship("Song", backref=db.backref("albums_songs", cascade="all, delete-orphan" ))
+
+    def __init__(self, album=None, song=None, position=0, disc=0):
+        self.album = album
+        self.song = song
+        self.position = position
+        self.disc = disc
+
+
+class Song(db.Model):
+
+    __tablename__ = "songs"
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100))
+    artists = db.relationship("Artist", secondary=SongsArtists, backref="Song")
+    year = db.Column(db.Integer)
+    epCover = db.Column(db.String(200))
+    albums = db.relationship("Album", secondary="albums_songs", viewonly=True)
+
+    def __init__(self, title, year=0):
+        self.title = title
+        self.year = year
+
+
+class Album(db.Model):
+
+    __tablename__ = "albums"
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100))
+    artists = db.relationship("Artist", secondary=AlbumsArtists, backref="Album")
+    year = db.Column(db.Integer)
+    cover = db.Column(db.String(200))
+    songs = db.relationship("Song", secondary="albums_songs", viewonly=True)
+
+    def __init__(self, title, year=0):
+        self.title = title
+        self.year = year
+        self.songs = []
+        self.artists = []
+
+    def addSong(self, song, position, disc=0):
+        self.albums_songs.append(Album_Song(album=self, song=song,
+                                            position=position, disc=disc))
+
+
+class Artist(db.Model):
+
+    __tablename__ = "artists"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    image = db.Column(db.String(200))
+    songs = db.relationship("Song", secondary=SongsArtists, backref="Artist")
+    albums = db.relationship("Album", secondary=AlbumsArtists, backref="Albums")
+
+    def __init__(self, name, image=""):
+        self.name = name
+        self.image = image
 
 
 class User(db.Model):
